@@ -7,7 +7,7 @@ contract AcademicService {
         address professor;
         mapping(address => int) grades;
     }
-       
+
     struct Student {
         address student;
         uint8 registeredCredits;
@@ -21,6 +21,11 @@ contract AcademicService {
 
     event AcquiredDegree(address who);
 
+    //modifier that checks if the sender is the school
+    modifier onlySchool(){
+        require(msg.sender == school, "Sender is not school.");
+        _;
+    }
 
     // This is the constructor whose code is
     // run only when the contract is created.
@@ -37,43 +42,43 @@ contract AcademicService {
         }
     }
 
-    function assignProfessor(uint8 courseId, address professor) public {
-        if(msg.sender == school && courseId > 0 &&
+    function assignProfessor(uint8 courseId, address professor) external onlySchool{
+        if( courseId > 0 &&
             courseId < courses.length &&
             courses[courseId].professor != address(0) &&
-            now < (start + 1 weeks)) {
-
+            now < (start + 1 days)) {
+            //TODO array access makes no sense here, should be index instead of courseId
             courses[courseId].professor = professor;
         }
     }
 
- function registerNewStudent(address studentAddress) public {
-     //address(0) is an empty address, since mappings always return structs, 
-     //we check if the address of the Studen struct is empty
-    if(msg.sender == school && now < (start + 4 weeks) &&
-        students[studentAddress].student == address(0)) {
+    function registerNewStudent(address studentAddress) external onlySchool {
+        //address(0) is an empty address, since mappings always return structs,
+        //we check if the address of the Studen struct is empty
 
-        students[studentAddress] = Student(studentAddress,0,0);
-    }
- }
+        if(now < (start + 4 weeks) &&
+            students[studentAddress].student == address(0)) {
 
- function registerOnCourse(uint8 courseId) public payable {
-    uint256 cost;
-    if(courseId > 0 && courseId < courses.length) {
-        if(students[msg.sender].registeredCredits >= 60) {
-            cost = courses[courseId].credits*(0.1 ether);
-        } else {
-            cost = (courses[courseId].credits -
-            (60-students[msg.sender].registeredCredits))*
-            (0.1 ether);
-        }
-
-        if(cost <= 0 || msg.value >= cost) {
-            courses[courseId].grades[msg.sender] = -1;
-            students[msg.sender].registeredCredits += courses[courseId].credits;
-            school.transfer(cost);
+            students[studentAddress] = Student(studentAddress,0,0);
         }
     }
- }
 
+    function registerOnCourse(uint8 courseId) public payable {
+        uint256 cost;
+        if(courseId > 0 && courseId < courses.length) {
+            if(students[msg.sender].registeredCredits >= 60) {
+                cost = courses[courseId].credits*(0.1 ether);
+            } else {
+                cost = (courses[courseId].credits -
+                (60-students[msg.sender].registeredCredits))*
+                (0.1 ether);
+            }
+
+            if(cost <= 0 || msg.value >= cost) {
+                courses[courseId].grades[msg.sender] = -1;
+                students[msg.sender].registeredCredits += courses[courseId].credits;
+                school.transfer(cost);
+            }
+        }
+    }
 }
