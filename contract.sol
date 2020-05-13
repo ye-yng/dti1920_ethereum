@@ -10,7 +10,6 @@ contract AcademicService {
         address student;
         uint8 registeredCredits;
         uint8 approvedCredits;
-        uint8[] courses;
     }
 
     address payable public school;
@@ -18,14 +17,16 @@ contract AcademicService {
     Course[] public courses;
     mapping(address => Student) students;
 
-    event AcquiredDegree(address who);
+    event AcquiredDegree(address student);
+    event GradeAssigned(address student);
 
-    //modifier that checks if the sender is the school
+    //This modifier is used on all functions that can only be accessed by the school
     modifier onlySchool(){
         require(msg.sender == school, "Sender is not school.");
         _;
     }
 
+    //This modifier is used on all functions that can only be accessed by a student
     modifier onlyStudent(){
         require(msg.sender != school, "Sender can't be school.");
         for(uint i = 0; i < courses.length; i++){
@@ -34,6 +35,7 @@ contract AcademicService {
         _;
     }
 
+    //This modifier is used on all functions that can only be accessed by a professor
     modifier onlyProfessor(){
         require(msg.sender != school, "Sender can't be school.");
         address professor = address(0);
@@ -65,8 +67,7 @@ contract AcademicService {
         }
 
         for(uint i = 0; i < studentAddresses.length; i++) {
-            uint8[] memory cs = new uint8[](courses.length);
-            students[studentAddresses[i]] = Student(studentAddresses[i],0,0,cs);
+            students[studentAddresses[i]] = Student(studentAddresses[i],0,0);
         }
     }
 
@@ -89,41 +90,43 @@ contract AcademicService {
         for(uint i = 0; i < studentAddresses.length; i++){
             //if the student does not exists, we register its address
             if(students[studentAddresses[i]].student == address(0)){
-                uint8[] memory cs = new uint8[](courses.length);
-                students[studentAddresses[i]] = Student(studentAddresses[i],0,0,cs);
+                students[studentAddresses[i]] = Student(studentAddresses[i],0,0);
             }
         }
     }
 
-    //TODO since uint can only be positive numbers, and the array of courses on a student is a fixed size
-    //change the values in the student's courses array so that it's index+1, meaning that 0 is the default value and 1 the course at index 0
     function registerOnCourse(uint8 courseId) external payable onlyStudent{
         uint256 cost;
         require(students[msg.sender].student != address(0), "Student is not registered.");
         require(courseId > 0 && courseId < courses.length, "Invalid course ID.");
-        if(students[msg.sender].registeredCredits >= 60) {
+        //Covers rule 5
+        require(now < 2 weeks, "Student's can only register within the first month.");
+
+        if(students[msg.sender].registeredCredits < 18) {
             cost = courses[courseId].credits*(0.1 ether);
         } else {
             cost = (courses[courseId].credits - (60-students[msg.sender].registeredCredits))*(0.1 ether);
         }
 
-        if(cost <= 0 || msg.value >= cost) {
-            courses[courseId].grades[msg.sender] = -1;
-            students[msg.sender].registeredCredits += courses[courseId].credits;
-            school.transfer(cost);
-        }
+        //Default values of Int is 0, so when a student is registered to the course, we change the value to -1
+        courses[courseId].grades[msg.sender] = -1;
+        students[msg.sender].registeredCredits += courses[courseId].credits;
+        school.transfer(cost);
     }
 
     //TODO unregister already assumes indexes in student.courses are +1 in relation to the courses array
     function unregisterCourse(uint8 courseId) external onlyStudent{
-        //checks if the time is within the first month of the contract's creation
+        //Covers rule 6
         require(now < start + 31 days, "Can only unregister during the first month of the contract.");
         require(courseId > 0 && courseId < courses.length, "Invalid course ID.");
         uint8 courseCredits = courses[courseId].credits;
         require(students[msg.sender].registeredCredits - courseCredits >= 0, "Insufficient registered credits on student.");
-        require(students[msg.sender].courses[courseId] != 0, "Student is not registered in course");
-        //assigns the course inside the student to 0, meaning it's empty
-        students[msg.sender].courses[courseId] = 0;
+        address studentAddress = address(0);
+        for(uint i = 0; i < courses.length; i++){
+            if(courses[i].grades[msg.sender] == -1){
+                studentAddress = msg.sender;
+            }
+        }
         uint8 currCredits = students[msg.sender].registeredCredits;
         //takes out the credits of the course from which the student unregistered from
         students[msg.sender].registeredCredits = currCredits - courseCredits;
