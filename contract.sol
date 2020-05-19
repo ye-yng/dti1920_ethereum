@@ -191,7 +191,7 @@ contract AcademicService {
         require(courses[courseId].registered[msg.sender] == true, "Student must be registered in the course.");
         //Ensures that the student failed the course
         require(courses[courseId].grades[msg.sender] >= 0 &&
-                courses[courseId].grades[msg.sender] < 10, "Student must be registered in the course.");
+                courses[courseId].grades[msg.sender] < 10, "Student must fail the course to ask for revision.");
         
         //Studenr pays school 5 Finney
         school.transfer(5);
