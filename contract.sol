@@ -21,8 +21,8 @@ contract AcademicService {
     Course[] public courses;
     mapping(address => Student) students;
 
-    event AcquiredDegree(address student);
-    event GradeAssigned(address student);
+    event AcquiredDegree(address from, address to); 
+    event GradeAssigned(address from, address to, uint8 courseId, int grade); 
     
     // This is the constructor whose code is
     // run only when the contract is created.
@@ -140,10 +140,10 @@ contract AcademicService {
         //require(students[msg.sender].registeredCredits - courseCredits >= 0, "Insufficient registered credits on student.");
         
         //Unregisters student
+        courses[courseId].grades[msg.sender] = 0;
         courses[courseId].registered[msg.sender] = false;
-        uint8 currCredits = students[msg.sender].registeredCredits;
         //Updates student's registered credits based on the course from which the student unregistered
-        students[msg.sender].registeredCredits = currCredits - courses[courseId].credits;
+        students[msg.sender].registeredCredits -= courses[courseId].credits;
     }
     
     //Covers point 8 - Professors can assign a grade between 0 and 20 to each registeres student
@@ -158,7 +158,17 @@ contract AcademicService {
         require(courses[courseId].professor == msg.sender, "Professor must teach the course.");
         
         courses[courseId].grades[student] = grade;
-        emit GradeAssigned(student);
+        emit GradeAssigned(msg.sender, student, courseId, grade);
+        
+        //If approved, updates student's credits, and notifies accordingly
+        if (grade > 10) {
+            uint8 currCredits = students[student].approvedCredits;
+            if (currCredits < 15 && currCredits + courses[courseId].credits >= 15) {
+                // trigger event letting everyone know the student acquired a degree
+            }
+            //Update student's approvedCredits
+            students[student].approvedCredits += courses[courseId].credits;
+        }
     }
     
     //Covers point 9 - Student can ask for special evaluation if fails the course
@@ -171,10 +181,8 @@ contract AcademicService {
         require(courses[courseId].grades[msg.sender] >= 0 &&
                 courses[courseId].grades[msg.sender] < 10, "Student must be registered in the course.");
         
+        //Studenr pays school 5 Finney
         school.transfer(5);
     }
-
-    //event AcquiredDegree(address student);
-    //event GradeAssigned(address student);
     
 }
