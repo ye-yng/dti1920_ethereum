@@ -101,13 +101,13 @@ contract AcademicService {
     }
 
     //Covers point 5 and 7 - Student can register
-    function registerOnCourse(uint8 courseId) external payable onlyStudent{
+    function registerOnCourse(uint8 courseId) external payable onlyStudent {
+        //Ensures that the course id is valid
+        require(courseId >= 0 && courseId < courses.length, "Invalid course ID.");
         //Ensures that the student is registering on the first 2 weeks
         require(now < 2 weeks, "Student's can only register themselves within the first 2 weeks.");
         //Ensures that the registering student is new in the course
         require(students[msg.sender].student != address(0), "Student must be new in the course.");
-        //Ensures that the course id is valid
-        require(courseId >= 0 && courseId < courses.length, "Invalid course ID.");
         //Covers rule 5
         require(now < 2 weeks, "Student's can only register themselves within the first 2 weeks.");
         
@@ -123,16 +123,16 @@ contract AcademicService {
         school.transfer(cost);
     }
 
-    //Cover point 6 - Student can unregister
+    //Covers point 6 - Student can unregister
     function unregisterCourse(uint8 courseId) external onlyStudent{
+        //Ensures that the course id is valid
+        require(courseId >= 0 && courseId < courses.length, "Invalid course ID.");
         //Ensures that the student is unregistering on the first month of the contract
         require(now < start + 31 days, "Can only unregister during the first month of the contract.");
         //Ensures that the unregistering student is registered in the academic year
         require(students[msg.sender].student == msg.sender, "Student must be registered in the academic year.");
         //Ensures that the unregistering student is registered in course
         require(courses[courseId].grades[msg.sender] == -1, "Student must be registered in the course.");
-        //Ensures that the course id is valid
-        require(courseId >= 0 && courseId < courses.length, "Invalid course ID.");
         
         //TODO onde viste esta regra?
         //require(students[msg.sender].registeredCredits - courseCredits >= 0, "Insufficient registered credits on student.");
@@ -143,4 +143,23 @@ contract AcademicService {
         //Updates student's registered credits based on the course from which the student unregistered
         students[msg.sender].registeredCredits = currCredits - courses[courseId].credits;
     }
+    
+    //Covers point 8 - Professors can assign a grade between 0 and 20 to each registeres student
+    function assignGrade(uint8 courseId, uint8 grade, address student) external onlyProfessor {
+        //Ensures that the course id is valid
+        require(courseId >= 0 && courseId < courses.length, "Invalid course ID.");
+        //Ensures that the unregistering student is registered in course
+        require(courses[courseId].grades[student] != 0, "Student must be registered in the course.");
+        //Ensures that the grade is valid
+        require(grade >= 0 && grade <= 20, "Grade must be between 0 and 20.");
+        //Ensures that the professor teaches the course
+        require(courses[courseId].professor == msg.sender, "Professor must teach the course.");
+        
+        courses[courseId].grades[student] = grade;
+        emit GradeAssigned(student);
+    }
+    
+    //event AcquiredDegree(address student);
+    //event GradeAssigned(address student);
+    
 }
