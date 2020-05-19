@@ -2,6 +2,7 @@
 pragma solidity ^0.6.8;
 
 contract AcademicService {
+    
     struct Course {
         uint8 credits;
         address payable professor;
@@ -21,35 +22,7 @@ contract AcademicService {
 
     event AcquiredDegree(address student);
     event GradeAssigned(address student);
-
-    //This modifier is used on all functions that can only be accessed by the school
-    modifier onlySchool(){
-        require(msg.sender == school, "Sender is not school.");
-        _;
-    }
-
-    //This modifier is used on all functions that can only be accessed by a student
-    modifier onlyStudent(){
-        require(msg.sender != school, "Sender can't be school.");
-        for(uint i = 0; i < courses.length; i++){
-            require(courses[i].professor != msg.sender, "Sender can't be a professor.");
-        }
-        _;
-    }
-
-    //This modifier is used on all functions that can only be accessed by a professor
-    modifier onlyProfessor(){
-        require(msg.sender != school, "Sender can't be school.");
-        address professor = address(0);
-        for(uint i = 0; i < courses.length; i++){
-            if(courses[i].professor == msg.sender){
-                professor = courses[i].professor;
-            }
-        }
-        require(professor != address(0), "Sender is not professor.");
-        _;
-    }
-
+    
     // This is the constructor whose code is
     // run only when the contract is created.
     constructor(address payable[] memory studentAddresses) public {
@@ -65,13 +38,42 @@ contract AcademicService {
 
         require(totalCredits > 18, "Total amount of credits must be larger than 18.");
         for(uint i = 0; i<courseCredits.length; i++) {
-            courses.push(Course(courseCredits[i],address(0)));
+            courses.push(Course(courseCredits[i],address(0))); //temos de inicializar todas as grades de alunos inscritos para -1
         }
 
         for(uint i = 0; i < studentAddresses.length; i++) {
             students[studentAddresses[i]] = Student(studentAddresses[i],0,0);
         }
     }
+    
+    
+
+    //This modifier is used on all functions that can only be accessed by the school
+    modifier onlySchool(){
+        require(msg.sender == school, "Sender must be the school.");
+        _;
+    }
+
+    //This modifier is used on all functions that can only be accessed by a student
+    modifier onlyStudent(){
+        require(students[msg.sender].student == msg.sender, "Sender must be a student.");
+        _;
+    }
+
+    //This modifier is used on all functions that can only be accessed by a professor
+    modifier onlyProfessor(){
+        bool isProfessor = false;
+        for(uint i = 0; i < courses.length; i++){
+            if(courses[i].professor == msg.sender){
+                isProfessor = true;
+                break;
+            }
+        }
+        require(isProfessor, "Sender is not a professor.");
+        _;
+    }
+
+    
 
     //Covers point 3
     function assignProfessor(uint8 courseId, address payable professor) external onlySchool{
