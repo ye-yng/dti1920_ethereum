@@ -19,13 +19,13 @@ contract AcademicService {
     address payable public school;
     uint256 public start;
     Course[] public courses;
+    address[] public listStudentsAddr;
     mapping(address => Student) students;
 
-    event AcquiredDegree(address from, address to); 
+    event AcquiredDegree(address from, address who, address to); 
     event GradeAssigned(address from, address to, uint8 courseId, int grade); 
     
-    // This is the constructor whose code is
-    // run only when the contract is created.
+    //Covers point 1 and 2
     constructor(address payable[] memory studentAddresses) public {
         school = msg.sender;
         start = now;
@@ -101,7 +101,8 @@ contract AcademicService {
         }
     }
 
-    //Covers point 5 and 7 - Student can register
+    //Covers point 5 - Student can register itself in the contract courses on the first 2 weeks
+    //Covers point 7 - free registation up to 18 credits
     function registerOnCourse(uint8 courseId) external payable onlyStudent {
         //Ensures that the course id is valid
         require(courseId >= 0 && courseId < courses.length, "Invalid course ID.");
@@ -147,6 +148,7 @@ contract AcademicService {
     }
     
     //Covers point 8 - Professors can assign a grade between 0 and 20 to each registeres student
+    //Covers point 10 - If the student is approved in 15 credits, an event should be generated
     function assignGrade(uint8 courseId, uint8 grade, address student) external onlyProfessor {
         //Ensures that the course id is valid
         require(courseId >= 0 && courseId < courses.length, "Invalid course ID.");
@@ -160,11 +162,19 @@ contract AcademicService {
         courses[courseId].grades[student] = grade;
         emit GradeAssigned(msg.sender, student, courseId, grade);
         
-        //If approved, updates student's credits, and notifies accordingly
+        //If approved, updates student's credits, and notifies accordingly - point 10 coverage
         if (grade > 10) {
             uint8 currCredits = students[student].approvedCredits;
             if (currCredits < 15 && currCredits + courses[courseId].credits >= 15) {
                 // trigger event letting everyone know the student acquired a degree
+                for(uint i = 0; i < courses.length; i++){
+                    if (courses[i].professor != address(0)) {
+                        emit AcquiredDegree(school, student, courses[i].professor);
+                    }
+                }
+                for(uint i = 0; i < listStudentsAddr.length; i++){
+                    emit AcquiredDegree(school, student, listStudentsAddr[i]);
+                }
             }
             //Update student's approvedCredits
             students[student].approvedCredits += courses[courseId].credits;
