@@ -11,22 +11,22 @@ contract AcademicService {
     }
 
     struct Student {
-        address payable student;
+        address student;
         uint8 registeredCredits;
         uint8 approvedCredits;
     }
 
-    address payable public school;
-    uint256 public start;
-    Course[] public courses;
-    address[] public listStudentsAddr;
+    address payable private school;
+    uint256 private start;
+    Course[] private courses;
+    address[] private listStudentsAddr;
     mapping(address => Student) students;
 
     event AcquiredDegree(address from, address who, address to); 
     event GradeAssigned(address from, address to, uint8 courseId, int grade); 
     
     //Covers point 1 and 2
-    constructor(address payable[] memory studentAddresses) public {
+    constructor(address[] memory studentAddresses) public {
         school = msg.sender;
         start = now;
 
@@ -107,7 +107,7 @@ contract AcademicService {
         //Ensures that the course id is valid
         require(courseId >= 0 && courseId < courses.length, "Invalid course ID.");
         //Ensures that the student is registering on the first 2 weeks
-        require(now < 2 weeks, "Student's can only register themselves within the first 2 weeks.");
+        require(now < start + 2 weeks, "Student's can only register themselves within the first 2 weeks.");
         //Ensures that the registering student is registered in the academic year
         require(students[msg.sender].student == msg.sender, "Student must be registered in the academic year.");
         //Ensures that the registering student is new in the course
