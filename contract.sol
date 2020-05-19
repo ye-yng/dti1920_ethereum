@@ -44,6 +44,7 @@ contract AcademicService {
 
         for(uint i = 0; i < studentAddresses.length; i++) {
             students[studentAddresses[i]] = Student(studentAddresses[i],0,0);
+            listStudentsAddr.push(studentAddresses[i]);
         }
     }
     
@@ -97,6 +98,7 @@ contract AcademicService {
             //if the student does not exists, we register its address
             if(students[studentAddresses[i]].student == address(0)){
                 students[studentAddresses[i]] = Student(studentAddresses[i],0,0);
+                listStudentsAddr.push(studentAddresses[i]);
             }
         }
     }
