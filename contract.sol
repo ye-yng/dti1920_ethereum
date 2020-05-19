@@ -7,6 +7,7 @@ contract AcademicService {
         uint8 credits;
         address payable professor;
         mapping(address => int) grades;
+        mapping(address => bool) registered;
     }
 
     struct Student {
@@ -106,10 +107,10 @@ contract AcademicService {
         require(courseId >= 0 && courseId < courses.length, "Invalid course ID.");
         //Ensures that the student is registering on the first 2 weeks
         require(now < 2 weeks, "Student's can only register themselves within the first 2 weeks.");
+        //Ensures that the registering student is registered in the academic year
+        require(students[msg.sender].student == msg.sender, "Student must be registered in the academic year.");
         //Ensures that the registering student is new in the course
-        require(students[msg.sender].student != address(0), "Student must be new in the course.");
-        //Covers rule 5
-        require(now < 2 weeks, "Student's can only register themselves within the first 2 weeks.");
+        require(courses[courseId].registered[msg.sender] == false, "Student must be new in the course.");
         
         uint256 cost = 0;
         //Charges the student if the student has at least 18 registered credits
@@ -119,6 +120,7 @@ contract AcademicService {
 
         //Default values of Int is 0, so when a student is registered to the course, we change the value to -1
         courses[courseId].grades[msg.sender] = -1;
+        courses[courseId].registered[msg.sender] = true;
         students[msg.sender].registeredCredits += courses[courseId].credits;
         school.transfer(cost);
     }
@@ -132,13 +134,13 @@ contract AcademicService {
         //Ensures that the unregistering student is registered in the academic year
         require(students[msg.sender].student == msg.sender, "Student must be registered in the academic year.");
         //Ensures that the unregistering student is registered in course
-        require(courses[courseId].grades[msg.sender] == -1, "Student must be registered in the course.");
+        require(courses[courseId].registered[msg.sender] == true, "Student must be registered in the course.");
         
         //TODO onde viste esta regra?
         //require(students[msg.sender].registeredCredits - courseCredits >= 0, "Insufficient registered credits on student.");
         
         //Unregisters student
-        courses[courseId].grades[msg.sender] = 0;
+        courses[courseId].registered[msg.sender] = false;
         uint8 currCredits = students[msg.sender].registeredCredits;
         //Updates student's registered credits based on the course from which the student unregistered
         students[msg.sender].registeredCredits = currCredits - courses[courseId].credits;
@@ -148,8 +150,8 @@ contract AcademicService {
     function assignGrade(uint8 courseId, uint8 grade, address student) external onlyProfessor {
         //Ensures that the course id is valid
         require(courseId >= 0 && courseId < courses.length, "Invalid course ID.");
-        //Ensures that the unregistering student is registered in course
-        require(courses[courseId].grades[student] != 0, "Student must be registered in the course.");
+        //Ensures that the student is registered in course
+        require(courses[courseId].registered[student] == true, "Student must be registered in the course.");
         //Ensures that the grade is valid
         require(grade >= 0 && grade <= 20, "Grade must be between 0 and 20.");
         //Ensures that the professor teaches the course
