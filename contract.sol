@@ -161,6 +161,19 @@ contract AcademicService {
         emit GradeAssigned(student);
     }
     
+    //Covers point 9 - Student can ask for special evaluation if fails the course
+    function askForGradeRevision(uint8 courseId) external payable onlyStudent {
+        //Ensures that the course id is valid
+        require(courseId >= 0 && courseId < courses.length, "Invalid course ID.");
+        //Ensures that the student is registered in course
+        require(courses[courseId].registered[msg.sender] == true, "Student must be registered in the course.");
+        //Ensures that the student failed the course
+        require(courses[courseId].grades[msg.sender] >= 0 &&
+                courses[courseId].grades[msg.sender] < 10, "Student must be registered in the course.");
+        
+        school.transfer(5);
+    }
+
     //event AcquiredDegree(address student);
     //event GradeAssigned(address student);
     
