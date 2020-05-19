@@ -1,13 +1,15 @@
-pragma solidity ^0.6.0;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.6.8;
+
 contract AcademicService {
     struct Course {
         uint8 credits;
-        address professor;
+        address payable professor;
         mapping(address => int) grades;
     }
 
     struct Student {
-        address student;
+        address payable student;
         uint8 registeredCredits;
         uint8 approvedCredits;
     }
@@ -50,7 +52,7 @@ contract AcademicService {
 
     // This is the constructor whose code is
     // run only when the contract is created.
-    constructor(address[] memory studentAddresses) public {
+    constructor(address payable[] memory studentAddresses) public {
         school = msg.sender;
         start = now;
 
@@ -72,18 +74,19 @@ contract AcademicService {
     }
 
     //Covers point 3
-    function assignProfessor(uint8 courseId, address professor) external onlySchool{
+    function assignProfessor(uint8 courseId, address payable professor) external onlySchool{
         //Ensures that the assignment process is being done in the first 2 days of contract creation
         require(now < start + 2 days, "Can only assign professor on the first 2 days of the contract creation.");
         //Checks if courseID is valid
         require(courseId > 0 && courseId < courses.length, "Invalid course ID.");
         //Checks if course does not have a professor associated
         require(courses[courseId].professor == address(0), "Course already has a professor associated.");
+        //Associates the professor to the course
         courses[courseId].professor = professor;
     }
 
     //Covers point 4
-    function registerStudents(address[] calldata studentAddresses) external onlySchool {
+    function registerStudents(address payable[] calldata studentAddresses) external onlySchool {
         //Ensures the student is being registered within the first week
         require(now < start + 1 weeks, "Students can only be registered within the first week of the contract creation." );
         //Checks that student doesn't already exist
