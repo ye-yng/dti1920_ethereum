@@ -8,6 +8,9 @@ contract AcademicService {
         address payable professor;
         mapping(address => int) grades;
         mapping(address => bool) registered;
+        mapping (address => bool) gradeChange;
+        //used  to check when there has been a grade approval
+        uint8 gradeApprovals;
     }
 
     struct Student {
@@ -194,7 +197,27 @@ contract AcademicService {
                 courses[courseId].grades[msg.sender] < 10, "Student must fail the course to ask for revision.");
         
         //Studenr pays school 5 Finney
-        school.transfer(5);
+        courses[courseId].gradeChange[msg.sender] = true;
+        school.transfer(5 finney);
     }
-    
+
+    //Covers point 9 - professor is able to approve special evaluation
+    function approveSpecialEvaluation(address student, uint8 newGrade, uint8 courseId) external payable onlyProfessor{
+        require(courses[courseId].professor == msg.sender, "Sender is not professor of given course.");
+        require(courses[courseId].registered[student], "Student is not registered on course.");
+        require(courses[courseId].gradeChange[student], "Student did not request grade change.");
+
+        courses[courseId].gradeChange[student] = false;
+        courses[courseId].grades[student] = newGrade;
+        courses[courseId].gradeApprovals = courses[courseId].gradeApprovals + 1;
+    }
+
+    //Covers point 9 - school pays the professor 1 finney for every grade approval
+    function payExtraApproval(uint8 courseId) external payable onlySchool{
+        require(courseId >= 0 && courseId < courses.length, "Invalid course ID.");
+        require(courses[courseId].gradeApprovals > 0, "No grade approvals were done.");
+
+        courses[courseId].professor.transfer(courses[courseId].gradeApprovals * 1 finney);
+        courses[courseId].gradeApprovals = 0;
+    }
 }
