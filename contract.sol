@@ -5,12 +5,12 @@ contract AcademicService {
     
     struct Course {
         uint8 credits;
+        //used  to check when there has been a grade approval
+        uint8 gradeApprovals;
         address payable professor;
         mapping(address => int) grades;
         mapping(address => bool) registered;
         mapping (address => bool) gradeChange;
-        //used  to check when there has been a grade approval
-        uint8 gradeApprovals;
     }
 
     struct Student {
@@ -22,11 +22,10 @@ contract AcademicService {
     address payable private school;
     uint256 private start;
     Course[] private courses;
-    address[] private listStudentsAddr;
     mapping(address => Student) students;
 
-    event AcquiredDegree(address from, address who, address to); 
-    event GradeAssigned(address from, address to, uint8 courseId, int grade); 
+    event AcquiredDegree(address school, address student);
+    event GradeAssigned(address teacher, address student, uint8 courseId, int grade); 
     
     //Covers point 1 and 2
     constructor(address[] memory studentAddresses) public {
@@ -42,12 +41,11 @@ contract AcademicService {
 
         require(totalCredits > 18, "Total amount of credits must be larger than 18.");
         for(uint i = 0; i<courseCredits.length; i++) {
-            courses.push(Course(courseCredits[i],address(0)));
+            courses.push(Course(courseCredits[i],0,address(0)));
         }
 
         for(uint i = 0; i < studentAddresses.length; i++) {
             students[studentAddresses[i]] = Student(studentAddresses[i],0,0);
-            listStudentsAddr.push(studentAddresses[i]);
         }
     }
     
@@ -101,7 +99,6 @@ contract AcademicService {
             //if the student does not exists, we register its address
             if(students[studentAddresses[i]].student == address(0)){
                 students[studentAddresses[i]] = Student(studentAddresses[i],0,0);
-                listStudentsAddr.push(studentAddresses[i]);
             }
         }
     }
@@ -172,14 +169,7 @@ contract AcademicService {
             uint8 currCredits = students[student].approvedCredits;
             if (currCredits < 15 && currCredits + courses[courseId].credits >= 15) {
                 // trigger event letting everyone know the student acquired a degree
-                for(uint i = 0; i < courses.length; i++){
-                    if (courses[i].professor != address(0)) {
-                        emit AcquiredDegree(school, student, courses[i].professor);
-                    }
-                }
-                for(uint i = 0; i < listStudentsAddr.length; i++){
-                    emit AcquiredDegree(school, student, listStudentsAddr[i]);
-                }
+                emit AcquiredDegree(school, student);
             }
             //Update student's approvedCredits
             students[student].approvedCredits += courses[courseId].credits;
