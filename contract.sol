@@ -125,7 +125,7 @@ contract AcademicService {
         courses[courseId].grades[msg.sender] = -1;
         courses[courseId].registered[msg.sender] = true;
         students[msg.sender].registeredCredits += courses[courseId].credits;
-        school.transfer(cost);
+        school.call.value(cost)("");
     }
 
     //Covers point 6 - Student can unregister
@@ -173,6 +173,8 @@ contract AcademicService {
             }
             //Update student's approvedCredits
             students[student].approvedCredits += courses[courseId].credits;
+        }else{
+            courses[courseId].grades[student] = grade;
         }
     }
     
@@ -188,7 +190,7 @@ contract AcademicService {
         
         //Studenr pays school 5 Finney
         courses[courseId].gradeChange[msg.sender] = true;
-        school.transfer(5 finney);
+        school.call.value(5 finney)("");
     }
 
     //Covers point 9 - professor is able to approve special evaluation
@@ -206,8 +208,8 @@ contract AcademicService {
     function payExtraApproval(uint8 courseId) external payable onlySchool{
         require(courseId >= 0 && courseId < courses.length, "Invalid course ID.");
         require(courses[courseId].gradeApprovals > 0, "No grade approvals were done.");
-
-        courses[courseId].professor.transfer(courses[courseId].gradeApprovals * 1 finney);
+        uint256 cost = courses[courseId].gradeApprovals * (1 finney);
+        courses[courseId].professor.call.value(cost)("");
         courses[courseId].gradeApprovals = 0;
     }
 }
