@@ -95,6 +95,8 @@ contract AcademicService {
         require(courseId >= 0 && courseId < courses.length, "Invalid course ID.");
         //Checks if course does not have a professor associated
         require(courses[courseId].professor == address(0), "Course already has a professor associated.");
+        //Ensures that the teacher assigned is registered in the academic year as a student
+        require(students[msg.sender].student != msg.sender, "Teacher is registered as student");
         //Associates the professor to the course
         courses[courseId].professor = professor;
     }
