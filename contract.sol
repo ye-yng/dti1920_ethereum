@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.6.8;
 
+/**
+ * @author João David n49448, Ye Yang n49521
+ */
+
 contract AcademicService {
     
     struct Course {
@@ -219,6 +223,15 @@ contract AcademicService {
         courses[courseId].grades[student] = newGrade;
         //after approval it adds to the grade approvals counter which will be used to pay the professor
         courses[courseId].gradeApprovals = courses[courseId].gradeApprovals + 1;
+    }
+    
+    //Covers point 9 - professor is able to reject special evaluation
+    function rejectSpecialEvaluation(address student, uint8 courseId) external payable onlyProfessor{
+        require(courses[courseId].professor == msg.sender, "Sender is not professor of given course.");
+        require(courses[courseId].registered[student], "Student is not registered on course.");
+        require(courses[courseId].gradeChange[student], "Student did not request grade change.");
+
+        courses[courseId].gradeChange[student] = false;
     }
 
     //Covers point 9 - school pays the professor 1 finney for every grade approval
