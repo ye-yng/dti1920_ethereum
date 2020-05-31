@@ -14,7 +14,7 @@ To prevent an incorrect user from accessing a certain service,
 Functions Explanation:
 	- assignProfessor(uint8 courseId, address payable professor) external onlySchool
 		courseID: The course where the professor will be teaching
-		professor: The theacher's address
+		professor: The professor's address
 		
 	- registerStudents(address payable[] calldata studentAddresses) external onlySchool
 		studentAddresses: Array of addresses that will be assigned as students, similiar to the constructor argument
@@ -31,7 +31,7 @@ Functions Explanation:
 		student: The student's address, who will get the grade
 	
 	- askForGradeRevision(uint8 courseId) external payable onlyStudent
-		courseId: The couse in which the function caller student will ask for grade revision
+		courseId: The course in which the function caller student will ask for grade revision
 	
 	- approveSpecialEvaluation(address student, uint8 newGrade, uint8 courseId) external payable onlyProfessor
 		student: Student that will his grade revision request approved
