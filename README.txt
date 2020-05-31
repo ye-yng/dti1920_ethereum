@@ -4,7 +4,11 @@ The constructor of the contract receives a list of students which can be added t
 
 For each one of the functions, we must make sure to be executing the function using the correct account, say for example a professor address accessing the assignGrade function.
 
+To prevent an incorrect user from accessing a certain service, modifiers were placed to ensure that an accessing account is either a professor, school or student.
+
 Gas costs:
+	- Data structures
+		Most of our data has been stored in mappings as they're less heavy in gas costs when compared to arrays and there was no need to iterate over the values which is one of the benefits of using arrays.
 	-Modifiers
 		Since all functions use modifiers, they have the same execution cost associated to a modifier.
 		Both onlySchool() and onlyStudent() modifiers have a fixed execution cost, while onlyProfessor() has a cost relative to the number of hardcoded courses on deployment.

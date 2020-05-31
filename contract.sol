@@ -5,11 +5,17 @@ contract AcademicService {
     
     struct Course {
         uint8 credits;
-        //used  to check when there has been a grade approval
+        //this counter is used to count  the amount of grade approvals done on this course
+        //so the professor can be payed accordingly
         uint8 gradeApprovals;
         address payable professor;
         mapping(address => int) grades;
+        //this mapping is needed since the default value of ints is 0, and a student can receive a 0 grade
+        //this value cannot be used to determine whether a student is registered on course
         mapping(address => bool) registered;
+        //this mapping is used to check whether a given student has issued a grade change
+        //since the default value for bools is false, an address is only mapped to true if a student
+        //makes a request
         mapping (address => bool) gradeChange;
     }
 
@@ -24,7 +30,9 @@ contract AcademicService {
     Course[] private courses;
     mapping(address => Student) students;
 
+    //Covers point 10 - event is emitted when a student gets a degree
     event AcquiredDegree(address school, address student);
+    //Covers point 8 - event is emitted when a grade is assigned
     event GradeAssigned(address teacher, address student, uint8 courseId, int grade); 
     
     //Covers point 1 and 2
@@ -34,6 +42,7 @@ contract AcademicService {
 
         uint8 totalCredits = 0;
         uint8[5] memory courseCredits= [3,6,6,3,6];
+        //Check course credit validity and total number of credits
         for(uint i = 0; i < courseCredits.length; i++) {
             require(courseCredits[i] == 6 || courseCredits[i] == 3, "Course credits must be 6 or 3");
             totalCredits = totalCredits + courseCredits[i];
@@ -94,7 +103,8 @@ contract AcademicService {
     function registerStudents(address payable[] calldata studentAddresses) external onlySchool {
         //Ensures that the student is being registered within the first week
         require(now < start + 1 weeks, "Students can only be registered within the first week of the contract creation." );
-        //Checks that student doesn't already exist
+        //Checks that student doesn't already exist, no requires is used as we want all addresses to be processed
+        //without throwing an exception if one of the addresses is invalid
         for(uint i = 0; i < studentAddresses.length; i++){
             //if the student does not exists, we register its address
             if(students[studentAddresses[i]].student == address(0)){
@@ -115,17 +125,19 @@ contract AcademicService {
         //Ensures that the registering student is new in the course
         require(courses[courseId].registered[msg.sender] == false, "Student must be new in the course.");
         
-        uint256 cost = 0;
         //Charges the student if the student has at least 18 registered credits
         if(students[msg.sender].registeredCredits >= 18) {
-            cost = courses[courseId].credits*(0.001 ether);
+            uint256 cost = 0;
+            cost = courses[courseId].credits*(1 finney);
+            (bool success,) = address(school).call{value: cost}("");
+            require(success, "Insufficient finney.");
         }
 
         //Default values of Int is 0, so when a student is registered to the course, we change the value to -1
         courses[courseId].grades[msg.sender] = -1;
+        //Registered value is set to true as a registered student with grade 0 would otherwise be assumed as being non registered
         courses[courseId].registered[msg.sender] = true;
         students[msg.sender].registeredCredits += courses[courseId].credits;
-        school.call.value(cost)("");
     }
 
     //Covers point 6 - Student can unregister
@@ -138,9 +150,6 @@ contract AcademicService {
         require(students[msg.sender].student == msg.sender, "Student must be registered in the academic year.");
         //Ensures that the unregistering student is registered in course
         require(courses[courseId].registered[msg.sender] == true, "Student must be registered in the course.");
-        
-        //TODO onde viste esta regra?
-        //require(students[msg.sender].registeredCredits - courseCredits >= 0, "Insufficient registered credits on student.");
         
         //Unregisters student
         courses[courseId].grades[msg.sender] = 0;
@@ -162,6 +171,7 @@ contract AcademicService {
         require(courses[courseId].professor == msg.sender, "Professor must teach the course.");
         
         courses[courseId].grades[student] = grade;
+        //emits the event
         emit GradeAssigned(msg.sender, student, courseId, grade);
         
         //If approved, updates student's credits, and notifies accordingly - point 10 coverage
@@ -174,6 +184,7 @@ contract AcademicService {
             //Update student's approvedCredits
             students[student].approvedCredits += courses[courseId].credits;
         }else{
+            //Else, only update the grade
             courses[courseId].grades[student] = grade;
         }
     }
@@ -188,9 +199,12 @@ contract AcademicService {
         require(courses[courseId].grades[msg.sender] >= 0 &&
                 courses[courseId].grades[msg.sender] < 10, "Student must fail the course to ask for revision.");
         
-        //Studenr pays school 5 Finney
+        //Student pays school 5 Finney
+       
+        (bool success,) = address(school).call{value: 5 finney}("");
+        require(success, "Insufficient finney.");
         courses[courseId].gradeChange[msg.sender] = true;
-        school.call.value(5 finney)("");
+        
     }
 
     //Covers point 9 - professor is able to approve special evaluation
@@ -201,6 +215,7 @@ contract AcademicService {
 
         courses[courseId].gradeChange[student] = false;
         courses[courseId].grades[student] = newGrade;
+        //after approval it adds to the grade approvals counter which will be used to pay the professor
         courses[courseId].gradeApprovals = courses[courseId].gradeApprovals + 1;
     }
 
@@ -208,8 +223,11 @@ contract AcademicService {
     function payExtraApproval(uint8 courseId) external payable onlySchool{
         require(courseId >= 0 && courseId < courses.length, "Invalid course ID.");
         require(courses[courseId].gradeApprovals > 0, "No grade approvals were done.");
+        //pays 1 finney for each grade approval done by the professor
         uint256 cost = courses[courseId].gradeApprovals * (1 finney);
-        courses[courseId].professor.call.value(cost)("");
+        (bool success,) = address(courses[courseId].professor).call{value: cost}("");
+        require(success, "Insufficient finney.");
+        //reset the grade approvals
         courses[courseId].gradeApprovals = 0;
     }
 }
